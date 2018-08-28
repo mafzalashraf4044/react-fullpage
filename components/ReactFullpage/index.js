@@ -38,17 +38,18 @@ class ReactFullpage extends React.Component {
   }
 
   componentDidMount() {
-    const { $, v2compatible = false, callbacks: cbs = [] } = this.props;
+    const { $, v2compatible = false } = this.props;
 
-    const registered = fullpageCallbacks.filter(key => !!cbs.find(cb => cb === key));
+    const filterCb = key => !!Object.keys(this.props).find(cb => cb === key);
+    const registered = fullpageCallbacks.filter(filterCb);
     const listeners = registered.reduce((result, key) => {
-      result[key] = (...args) => { // eslint-disable-line no-param-reassign
+      const agg = { ...result };
+      agg[key] = (...args) => {
         const newArgs = [key, ...args];
-
         this.update(...newArgs);
       };
 
-      return result;
+      return agg;
     }, {});
 
     const finalOpts = {
@@ -66,6 +67,7 @@ class ReactFullpage extends React.Component {
         $('#fullpage').fullpage(finalOpts);
       });
     } else if (Fullpage) {
+      // eslint-disable-line
       new Fullpage('#fullpage', finalOpts); // eslint-disable-line
       this.markInitialized();
     }
@@ -93,7 +95,7 @@ class ReactFullpage extends React.Component {
     const makeState = callbackParameters => ({
       ...state,
       ...callbackParameters,
-      callback: lastEvent,
+      lastEvent,
     });
 
     const fromArgs = argList =>
@@ -181,7 +183,9 @@ class ReactFullpage extends React.Component {
       }
     }
 
-    this.setState(state);
+    this.setState(state, () => {
+      this.props[lastEvent](...args);
+    });
   }
 
   render() {
